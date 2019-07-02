@@ -1,0 +1,82 @@
+---
+apiVersion: apps/v1beta1
+kind: StatefulSet
+metadata:
+  name: kafka-mon
+  namespace: analytics
+spec:
+  serviceName: kafka-mon
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: kafka-mon
+    spec:
+      securityContext:
+         runAsUser: 1000
+         fsGroup: 1000
+         runAsNonRoot: false
+         #runAsUser: 0
+      containers:
+      - name: kafka-mon
+        image: "image-registry.internal.ccp.systems/paas/ccp-up4a-kafka-mon:v0.9"
+        command: ["/bin/sh","-c"]
+        #args: ["$KAFKA_MNGR_HOME/bin/kafka-manager &; tail -f /dev/null"] # ----
+        args: ["cd $KAFKA_MNGR_HOME/bin && ./kafka-manager -Dhttp.port=8080; tail -f /dev/null"]
+        imagePullPolicy: Always
+        #readinessProbe:
+        #  tcpSocket:
+        #     port: 8080
+        # timeoutSeconds: 5
+        #  periodSeconds: 5
+        #  initialDelaySeconds: 30
+        #livenessProbe:
+        #  tcpSocket:
+        #     port: 8080
+        #  timeoutSeconds: 5
+        #  periodSeconds: 5
+        #  initialDelaySeconds: 45
+        ports:
+        - containerPort: 8080
+        volumeMounts:
+            - name: kafkamon-conf
+              mountPath: $KAFKA_MNGR_HOME/conf
+  volumeClaimTemplates:
+  - metadata:
+      name: kafkamon-conf
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 2Gi 
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka-mon-svc
+  namespace: analytics
+  labels:
+    app: kafka-mon
+spec:
+  selector:
+    app: kafka-mon
+  ports:
+  - port: 8080
+    name: http
+    targetPort: 8080
+  clusterIP: None
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: kafka-mon-http
+  namespace: analytics  
+spec:
+  type: LoadBalancer
+  selector:
+    app: kafka-mon
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+      name: kafka-mon

@@ -1,0 +1,150 @@
+apiVersion: apps/v1beta1
+kind: StatefulSet
+metadata:
+  name: nifi
+#  namespace: analytics
+  namespace: analytics
+spec:
+  serviceName: nifi
+  replicas: 1 
+  podManagementPolicy: Parallel
+  updateStrategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: nifi
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: "app"
+                    operator: In
+                    values:
+                    - nifi
+              topologyKey: "kubernetes.io/hostname"
+      # Allow non-root user to access PersistentVolume
+      securityContext:
+          runAsUser: 1000
+          fsGroup: 1000
+          runAsNonRoot: true
+      imagePullSecrets:
+        - name: ccp-analytics-ccpanalytics-pull-secret
+      containers:
+        - name: nifi
+          image: "reg-dhc.app.corpintra.net/ccp_analytics/nifi:v1"
+          #image: "eu.gcr.io/ccp-testenv/paas/nifi"
+          command: ["/bin/sh","-c"]
+          args: ["cp /opt/nifi/run.sh /tmp/ ; chmod +x /tmp/run.sh; cd /tmp/ && ./run.sh"]
+          imagePullPolicy: Always
+          resources:
+            requests:
+              memory: "1024Mi"
+              cpu: "500m"
+            limits:
+              memory: "2Gi"
+              cpu: "2"
+          ports:
+            - containerPort: 8080
+            - containerPort: 8081
+            - containerPort: 8443
+            - containerPort: 2882
+            - containerPort: 11443
+          readinessProbe:
+            tcpSocket:
+              port: 8080
+            timeoutSeconds: 10
+            periodSeconds: 10
+            initialDelaySeconds: 30
+          livenessProbe:
+             tcpSocket:
+               port: 8080
+             timeoutSeconds: 10
+             periodSeconds: 10
+             initialDelaySeconds: 60
+          volumeMounts:
+            - name: runconfig
+              mountPath: /opt/nifi/run.sh
+              subPath: run.sh
+            - name: flowfilerepository
+              mountPath: /opt/nifi/flowfile_repository
+            - name: databaserepository
+              mountPath: /opt/nifi/database_repository
+            - name: contentrepository
+              mountPath: /opt/nifi/content_repository
+            - name: provenancerepository
+              mountPath: /opt/nifi/provenance_repository
+            - name: nifi-hdfs-core-site
+              mountPath: /etc/hadoop/core-site.xml
+              subPath: core-site.xml
+            - name: nifi-hdfs-hdfs-site
+              mountPath: /etc/hadoop/hdfs-site.xml
+              subPath: hdfs-site.xml
+            - name: flow-xml
+              mountPath: /opt/nifi_conf
+              #subPath: flow.xml.gz
+          env:
+            - name: ZK_NODES_LIST
+              value: "zk-0.zk-svc.analytics.svc.cluster.local,zk-1.zk-svc.analytics.svc.cluster.local,zk-2.zk-svc.analytics.svc.cluster.local"
+            - name: ZK_SVC
+              value: "zk-svc"
+            - name: ZK_NODES_1
+              value: "zk-0.zk-svc.analytics.svc.cluster.local"
+            - name: ZK_NODES_2
+              value: "zk-1.zk-svc.analytics.svc.cluster.local"
+            - name: ZK_NODES_3
+              value: "zk-2.zk-svc.analytics.svc.cluster.local"
+            - name: ZK_MONITOR_PORT
+              value: "2888"
+            - name: IS_CLUSTER_NODE
+              value: "yes"
+            - name: BANNER_TEXT
+              value: "Daimler CCP"
+      volumes:
+      - name: runconfig
+        configMap:
+          name: nifi-bootstrap
+      - name: nifi-hdfs-core-site
+        configMap:
+          name: nifi-hdfs-core-site
+      - name: nifi-hdfs-hdfs-site
+        configMap:
+          name: nifi-hdfs-hdfs-site
+  volumeClaimTemplates:
+  - metadata:
+      name: flowfilerepository
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 1Gi
+  - metadata:
+      name: databaserepository
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 1Gi
+  - metadata:
+      name: contentrepository
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 1Gi
+  - metadata:
+      name: provenancerepository
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 1Gi
+  - metadata:
+      name: flow-xml
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 1Gi

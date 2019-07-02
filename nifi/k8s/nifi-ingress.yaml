@@ -1,0 +1,16 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: ingress-dhc-nifi
+  namespace: analytics
+  annotations:
+    traefik.frontend.rule.type: PathPrefixStrip
+    traefik.frontend.rule: "AddPrefix: /nifiui"
+spec:
+  rules:
+  - http:
+      paths:
+      - backend:
+          serviceName: nifi-http
+          servicePort: 8080
+        path: /nifiui

@@ -1,0 +1,23 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: ingress-dhc-zookeeper
+  namespace: analytics
+  annotations:
+    traefik.frontend.rule.type: PathPrefixStrip
+spec:
+  rules:
+  - http:
+      paths:
+      - backend:
+          serviceName: zk-svc
+          servicePort: 2181
+        path: /zk
+      - backend:
+          serviceName: zk-svc
+          servicePort: 2888
+        path: /zk-server
+      - backend:
+          serviceName: zk-svc
+          servicePort: 3888
+        path: /zk-leader

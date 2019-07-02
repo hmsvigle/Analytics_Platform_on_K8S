@@ -1,0 +1,31 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka-mon-svc
+  namespace: analytics
+  labels:
+    app: kafka-mon
+spec:
+  selector:
+    app: kafka-mon
+  ports:
+  - port: 8080
+    name: http
+    targetPort: 8080
+  clusterIP: None
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka-mon-svc-np
+  namespace: analytics
+  labels:
+    app: kafka-mon
+spec:
+  type: NodePort
+  selector:
+    app: kafka-mon
+  ports:
+  - port: 8080
+    name: http

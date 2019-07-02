@@ -1,0 +1,43 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: analytics
+  name: boot-zeppelin
+data:
+  boot-zeppelin.sh: |-
+    #!/bin/bash
+    echo $PATH
+    JAVA_OPTS="$JAVA_OPTS -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true"
+    echo $JAVA_OPTS
+    # setting few variables
+    #git_remote_url="https:\/\/github\.com\/himansupanigrahy\/zeppelin_notes.git"
+    #git_remote_username=himansupanigrahy
+    #git_remote_accesstoken="f5de7e8b1d88ca602a4fa9771112f59ea65dde16"
+    #notebook_storage="org\.apache\.zeppelin\.notebook\.repo\.GitHubNotebookRepo"
+
+    mkdir -p /zeppelin/run /tmp/spark-events
+    # start spark
+    cp /etc/spark/conf/spark-env.sh.template  /etc/spark/conf/spark-env.sh
+    echo "SPARK_MASTER_WEBUI_PORT=8081" >> /etc/spark/conf/spark-env.sh
+    nohup /etc/spark/sbin/start-history-server.sh &
+    nohup /etc/spark/sbin/start-master.sh &
+    nohup /etc/spark/sbin/start-slave.sh spark://localhost:7077
+    # updating zeppelin-env.sh & zeppelin-site.xml 
+    sed -i 's/<value>notebook<\/value>/<value>\/notebook<\/value>/g' /zeppelin/conf/zeppelin-site.xml
+    #sed -i '527d' $Z_HOME/conf/zeppelin-site.xml
+    #sed -i '561d' $Z_HOME/conf/zeppelin-site.xml
+    #sed -i "529s/.*/  <value>${git_remote_url}<\/value>/" $Z_HOME/conf/zeppelin-site.xml
+    #sed -i "535s/.*/  <value>${git_remote_username}<\/value>/" $Z_HOME/conf/zeppelin-site.xml
+    #sed -i "541s/.*/  <value>${git_remote_accesstoken}<\/value>/" $Z_HOME/conf/zeppelin-site.xml
+    #sed -i "267s/.*/  <value>${notebook_storage}<\/value>/" $Z_HOME/conf/zeppelin-site.xml
+    echo "export MASTER=spark://sparkmaster:7077" >> /zeppelin/conf/zeppelin-env.sh
+    echo "export ZEPPELIN_LOG_DIR=/zeppelin/logs" >> /zeppelin/conf/zeppelin-env.sh
+    echo "export ZEPPELIN_PID_DIR=/zeppelin/run" >> /zeppelin/conf/zeppelin-env.sh
+    echo "export SPARK_HOME=/etc/spark" >> /zeppelin/conf/zeppelin-env.sh
+    echo "export ZEPPELIN_INTP_MEM=-Xms1024m -Xmx4g -XX:MaxPermSize=4g" zeppelin-env.sh
+    cp /zeppelin/conf/shiro.ini.template /zeppelin/conf/shiro.ini
+    sed -i 's/\#\/\*\* = anon/\/\*\* = anon/g' /zeppelin/conf/shiro.ini
+    sed -i 's/\/\*\* = authc/\#\/\*\* = authc/g' /zeppelin/conf/shiro.ini
+    /zeppelin/bin/zeppelin.sh
+
+    tail -f /dev/null 

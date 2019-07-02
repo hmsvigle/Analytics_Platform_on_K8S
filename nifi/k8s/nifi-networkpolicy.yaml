@@ -1,0 +1,24 @@
+kind: NetworkPolicy
+apiVersion: extensions/v1beta1
+metadata:
+  namespace: analytics
+  name: nifi-nw
+  labels:
+    app: nifi
+spec:
+  podSelector:
+    matchLabels:
+      app: nifi
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: analytics
+#      podSelector:
+#        matchLabels:
+#          app: nifi
+  - ports:
+    - port: 8080
+      protocol: TCP
+  policyTypes:
+  - Ingress

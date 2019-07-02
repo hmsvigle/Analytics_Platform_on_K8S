@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: analytics
+  name: boot-spark-master
+data:
+  boot-spark-master.sh: |-
+    #!/bin/bash
+    echo $PATH
+    JAVA_OPTS="$JAVA_OPTS -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true"
+    unset SPARK_MASTER_PORT
+    echo $JAVA_OPTS
+    unset SPARK_MASTER_PORT
+    mkdir -p /tmp/spark-events
+    mkdir -p /etc/spark/spark-history
+    cd /etc/spark/sbin
+    ./start-master.sh  
+    ./start-history-server.sh  
+    tail -f /dev/null

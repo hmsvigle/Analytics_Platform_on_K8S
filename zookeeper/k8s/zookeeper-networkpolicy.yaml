@@ -1,0 +1,15 @@
+kind: NetworkPolicy
+apiVersion: networking.k8s.io/v1
+metadata:
+  namespace: analytics
+  name: zk-nw
+spec:
+  podSelector:
+    matchLabels:
+      app: zk
+# all the services who has to access zk has to be listed here.
+  ingress:
+    - from:
+      - podSelector:
+          matchLabels:
+            app : kafka

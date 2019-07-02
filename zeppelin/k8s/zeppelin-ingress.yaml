@@ -1,0 +1,15 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: ingress-dhc-zeppelin
+  namespace: analytics
+  annotations:
+    traefik.frontend.rule.type: PathPrefixStrip
+spec:
+  rules:
+  - http:
+      paths:
+      - backend:
+          serviceName: zeppelin-svc
+          servicePort: 8080
+        path: /zeppelin

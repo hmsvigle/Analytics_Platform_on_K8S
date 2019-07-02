@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: analytics
+  name: boot-kafkamon
+data:
+  boot-kafkamon.sh: |-
+    #!/bin/bash
+    echo $PATH
+    sed -i 's/kafka-manager-zookeeper/zk-svc/g' $KAFKA_MNGR_HOME/conf/application.conf
+    $KAFKA_MNGR_HOME/bin/kafka-manager -Dhttp.port=8080 &
+
+    tail -f /dev/null

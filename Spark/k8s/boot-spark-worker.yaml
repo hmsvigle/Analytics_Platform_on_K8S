@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: analytics
+  name: boot-spark-worker
+data:
+  boot-spark-worker.sh: |-
+    #!/bin/bash
+    echo $PATH
+    JAVA_OPTS="$JAVA_OPTS -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true"
+    echo $JAVA_OPTS
+    cd /etc/spark/sbin
+    ./start-slave.sh spark://sparkmaster:7077
+    tail -f /dev/null 

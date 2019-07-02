@@ -1,0 +1,81 @@
+apiVersion: apps/v1beta1
+kind: StatefulSet
+metadata:
+  namespace: analytics
+  name: zeppelin
+spec:
+  selector:
+    matchLabels:
+      app: zeppelin
+  serviceName: zeppelin
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: zeppelin
+    spec:
+      securityContext:
+         runAsUser: 1000
+         fsGroup: 1000
+         runAsNonRoot: true
+      imagePullSecrets:
+        - name: ccp-analytics-ccpanalytics-pull-secret 
+      containers:
+      - image: "reg-dhc.app.corpintra.net/ccp_analytics/zeppelin:v1"
+      #- image: "eu.gcr.io/ccp-testenv/paas/zeppelin"
+        command: ["/bin/sh","-c"]
+        args: ["cp /opt/zeppelin/boot-zeppelin.sh /tmp/boot-zeppelin.sh; chmod +x /tmp/boot-zeppelin.sh; cd /tmp && ./boot-zeppelin.sh"]
+        imagePullPolicy: Always
+        name: zeppelin
+        readinessProbe:
+          tcpSocket:
+             port: 8080
+          timeoutSeconds: 5
+          periodSeconds: 5
+          initialDelaySeconds: 30
+        livenessProbe:
+          tcpSocket:
+             port: 8080
+          timeoutSeconds: 5
+          periodSeconds: 5
+          initialDelaySeconds: 45
+        ports:
+        - containerPort: 8080
+          name: http
+        volumeMounts:
+            - name: boot-zeppelin
+              mountPath: /opt/zeppelin/boot-zeppelin.sh
+              subPath: boot-zeppelin.sh
+            - name: zep-hdfs-core-site
+              mountPath: /etc/hadoop/core-site.xml
+              subPath: core-site.xml
+            - name: zep-hdfs-hdfs-site
+              mountPath: /etc/hadoop/hdfs-site.xml
+              subPath: hdfs-site.xml
+            - name: notebook
+              mountPath: /notebook
+        resources:
+          requests:
+            cpu: "2"
+            memory: "4Gi"
+          limits:
+            cpu: "4"
+            memory: "4Gi"
+      volumes:
+      - name: boot-zeppelin
+        configMap:
+          name: boot-zeppelin
+      - name: zep-hdfs-core-site
+        configMap:
+          name: zep-hdfs-core-site
+      - name: zep-hdfs-hdfs-site
+        configMap:
+          name: zep-hdfs-hdfs-site
+  volumeClaimTemplates:
+  - metadata:
+      name: notebook
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 1Gi 

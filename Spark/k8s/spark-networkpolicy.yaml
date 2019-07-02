@@ -1,0 +1,24 @@
+kind: NetworkPolicy
+apiVersion: extensions/v1beta1
+metadata:
+  namespace: analytics
+  name: spark-nw
+  labels:
+    app: spark
+spec:
+  podSelector:
+    matchLabels:
+      app: sparkmaster
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: analytics
+#      podSelector:
+#        matchLabels:
+#          app: nifi
+  - ports:
+    - port: 8080
+      protocol: TCP
+  policyTypes:
+  - Ingress

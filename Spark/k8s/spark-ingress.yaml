@@ -1,0 +1,18 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: ingress-dhc-spark
+  namespace: analytics
+  annotations:
+    traefik.frontend.rule.type: PathPrefixStrip
+#    traefik.frontend.rule: "AddPrefix: /spark"
+spec:
+  rules:
+  - http:
+      paths:
+      - backend:
+          serviceName: sparkmaster
+          servicePort: 8080
+        path: /spark
+#  addPrefix:
+#    prefix: /spark

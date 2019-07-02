@@ -1,0 +1,19 @@
+kind: Service
+apiVersion: v1
+metadata:
+  namespace: analytics
+  name: sparkmaster
+spec:
+  ports:
+    - port: 7077
+      targetPort: 7077
+      name: spark
+    - port: 8080
+      targetPort: 8080
+      name: http
+    - port: 18080
+      targetPort: 18080
+      name: history      
+  selector:
+    app: sparkmaster
+  clusterIP: None

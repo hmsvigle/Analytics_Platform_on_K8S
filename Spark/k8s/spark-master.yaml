@@ -1,0 +1,81 @@
+apiVersion: apps/v1beta1
+kind: StatefulSet
+metadata:
+  namespace: analytics
+  name: sparkmaster
+spec:
+  selector:
+    matchLabels:
+      app: sparkmaster
+  serviceName: sparkmaster
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: sparkmaster
+    spec:
+      securityContext:
+          runAsUser: 1000
+          fsGroup: 1000
+          runAsNonRoot: true
+      imagePullSecrets:
+        - name: ccp-analytics-ccpanalytics-pull-secret
+      containers:
+      - image: "reg-dhc.app.corpintra.net/ccp_analytics/spark:v1"
+      #- image: "eu.gcr.io/ccp-testenv/paas/spark2"
+        command: ["/bin/sh","-c"]
+        args: ["cp /opt/spark/boot-spark-master.sh /tmp/ ; chmod +x /tmp/boot-spark-master.sh; cd /tmp/ && ./boot-spark-master.sh"]
+        imagePullPolicy: Always
+        name: sparkmaster
+        resources:
+          requests:
+            memory: "1024Mi"
+            cpu: "200m"
+          limits:
+            memory: "4Gi"
+            cpu: "3"
+        readinessProbe:
+          tcpSocket:
+             port: 7077
+          timeoutSeconds: 5
+          periodSeconds: 5
+          initialDelaySeconds: 30
+        livenessProbe:
+          tcpSocket:
+             port: 7077
+          timeoutSeconds: 5
+          periodSeconds: 5
+          initialDelaySeconds: 60
+        ports:
+        - containerPort: 8080
+          name: http
+        - containerPort: 18080
+          name: history
+        - containerPort: 7077
+          name: spark
+        volumeMounts:
+            - name: boot-spark-master
+              mountPath: /opt/spark/boot-spark-master.sh
+              subPath: boot-spark-master.sh
+            - name: spark-defaults
+              mountPath: /etc/spark/conf/spark-defaults.conf
+              subPath: spark-defaults.conf
+            - name: spark-hdfs-core-site
+              mountPath: /etc/hadoop/core-site.xml
+              subPath: core-site.xml
+            - name: spark-hdfs-hdfs-site
+              mountPath: /etc/hadoop/hdfs-site.xml
+              subPath: hdfs-site.xml
+      volumes:
+      - name: boot-spark-master
+        configMap:
+          name: boot-spark-master
+      - name: spark-defaults
+        configMap:
+          name: spark-defaults
+      - name: spark-hdfs-core-site
+        configMap:
+          name: spark-hdfs-core-site
+      - name: spark-hdfs-hdfs-site
+        configMap:
+          name: spark-hdfs-hdfs-site

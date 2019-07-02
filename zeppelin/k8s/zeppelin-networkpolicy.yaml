@@ -1,0 +1,22 @@
+kind: NetworkPolicy
+apiVersion: extensions/v1beta1
+metadata:
+  namespace: analytics
+  name: zeppelin-nw
+  labels:
+    app: zeppelin
+spec:
+  podSelector:
+    matchLabels:
+      app: zeppelin
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: analytics
+  - ports:
+    - port: 8080
+      protocol: TCP
+      name: webui
+  policyTypes:
+  - Ingress

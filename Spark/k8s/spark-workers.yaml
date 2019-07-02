@@ -1,0 +1,78 @@
+apiVersion: apps/v1beta1
+kind: StatefulSet
+metadata:
+  namespace: analytics
+  name: sparkworker
+spec:
+  selector:
+    matchLabels:
+      app: sparkworker
+  serviceName: sparkworker
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: sparkworker
+    spec:
+      securityContext:
+          runAsUser: 1000
+          fsGroup: 1000
+          runAsNonRoot: true
+      imagePullSecrets:
+        - name: ccp-analytics-ccpanalytics-pull-secret
+      containers:
+      - image: "reg-dhc.app.corpintra.net/ccp_analytics/spark:v1"
+      #- image: "eu.gcr.io/ccp-testenv/paas/spark"
+        command: ["/bin/sh","-c"]
+        args: ["cp /opt/spark/boot-spark-worker.sh /tmp/ ; chmod +x /tmp/boot-spark-worker.sh; cd /tmp/ && ./boot-spark-worker.sh"]
+        imagePullPolicy: Always
+        name: sparkworker
+        readinessProbe:
+          tcpSocket:
+             port: 8081
+          timeoutSeconds: 5
+          periodSeconds: 5
+          initialDelaySeconds: 30
+        livenessProbe:
+          tcpSocket:
+             port: 8081
+          timeoutSeconds: 5
+          periodSeconds: 5
+          initialDelaySeconds: 60
+        ports:
+        - containerPort: 8081
+          name: ui
+          protocol: TCP
+        volumeMounts:
+            - name: boot-spark-worker
+              mountPath: /opt/spark/boot-spark-worker.sh
+              subPath: boot-spark-worker.sh
+            - name: spark-defaults
+              mountPath: /etc/spark/conf/spark-defaults.conf
+              subPath: spark-defaults.conf
+            - name: spark-hdfs-core-site
+              mountPath: /etc/hadoop/core-site.xml
+              subPath: core-site.xml
+            - name: spark-hdfs-hdfs-site
+              mountPath: /etc/hadoop/hdfs-site.xml
+              subPath: hdfs-site.xml
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "4Gi"
+            cpu: "3"
+      volumes:
+      - name: boot-spark-worker
+        configMap:
+          name: boot-spark-worker
+      - name: spark-defaults
+        configMap:
+          name: spark-defaults
+      - name: spark-hdfs-core-site
+        configMap:
+          name: spark-hdfs-core-site
+      - name: spark-hdfs-hdfs-site
+        configMap:
+          name: spark-hdfs-hdfs-site       

@@ -1,0 +1,68 @@
+---
+apiVersion: apps/v1beta1
+kind: StatefulSet
+metadata:
+  name: kafka-mon
+  namespace: analytics
+spec:
+  selector:
+    matchLabels:
+      app: kafka-mon
+  serviceName: kafka-mon
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: kafka-mon
+    spec:
+      securityContext:
+         runAsUser: 1000
+         fsGroup: 1000
+         runAsNonRoot: true
+      imagePullSecrets:
+      - name: ccp-analytics-ccpanalytics-pull-secret         
+      containers:
+      - name: kafka-mon
+        image: "reg-dhc.app.corpintra.net/ccp_analytics/kafka-manager:v1"
+        command: ["/bin/sh","-c"]
+        args: ["cp /opt/kafka/boot-kafkamon.sh /tmp/ && chmod +x /tmp/boot-kafkamon.sh && /tmp/boot-kafkamon.sh"]
+        imagePullPolicy: Always
+        resources: 
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "1"
+        readinessProbe:
+          tcpSocket:
+             port: 8080
+          timeoutSeconds: 5
+          periodSeconds: 5
+          initialDelaySeconds: 30
+        livenessProbe:
+          tcpSocket:
+             port: 8080
+          timeoutSeconds: 5
+          periodSeconds: 5
+          initialDelaySeconds: 45
+        ports:
+        - containerPort: 8080
+        volumeMounts:
+          - name: kafka-mon-conf
+            mountPath: $KAFKA_MNGR_HOME/conf
+          - name: boot-kafkamon
+            mountPath: /opt/kafka/boot-kafkamon.sh
+            subPath: boot-kafkamon.sh
+      volumes:
+      - name: boot-kafkamon
+        configMap:
+          name: boot-kafkamon
+  volumeClaimTemplates:
+  - metadata:
+      name: kafka-mon-conf
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 2Gi

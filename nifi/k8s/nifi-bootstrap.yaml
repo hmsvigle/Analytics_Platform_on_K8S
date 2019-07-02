@@ -1,0 +1,36 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nifi-bootstrap
+  namespace: analytics
+data:
+  run.sh: |-
+    export host=`hostname -f`
+    mkdir -p /tmp/nifi-zk /tmp/input /tmp/output
+    init_heap=8g
+    max_heap=16g
+    sed -i 's/nifi.flow.configuration.file=.\/conf\/flow.xml.gz/nifi.flow.configuration.file=\/opt\/nifi_conf\/flow.xml.gz/g' $NIFI_HOME/conf/nifi.properties
+    sed -i 's/nifi.cluster.is.node=false/nifi.cluster.is.node=true/g'  $NIFI_HOME/conf/nifi.properties
+    sed -i "s/nifi.zookeeper.connect.string=/nifi.zookeeper.connect.string=${ZK_SVC}:2181/g" $NIFI_HOME/conf/nifi.properties
+    sed -i 's/nifi.cluster.flow.election.max.wait.time=5 mins/nifi.cluster.flow.election.max.wait.time=1 mins/g' $NIFI_HOME/conf/nifi.properties
+    sed -i 's/nifi.cluster.node.protocol.port=/nifi.cluster.node.protocol.port=11443/g' $NIFI_HOME/conf/nifi.properties
+    sed -i "s/nifi.cluster.node.address=/nifi.cluster.node.address=${host}/g" $NIFI_HOME/conf/nifi.properties
+    sed -i 's/nifi.cluster.node.connection.timeout=5 sec/nifi.cluster.node.connection.timeout=60 sec/g' $NIFI_HOME/conf/nifi.properties
+    sed -i 's/nifi.cluster.node.read.timeout=5 sec/nifi.cluster.node.read.timeout=60 sec/g' $NIFI_HOME/conf/nifi.properties
+    sed -i 's/nifi.cluster.node.protocol.threads=10/nifi.cluster.node.protocol.threads=50/g' $NIFI_HOME/conf/nifi.properties
+    #sed -i 's/nifi.web.jetty.threads=200/nifi.web.jetty.threads=400/g'  $NIFI_HOME/conf/nifi.properties
+    sed -i 's/nifi.zookeeper.root.node=/nifi.zookeeper.root.node=\/tmp\/nifi-zk/g' $NIFI_HOME/conf/nifi.properties
+    sed -i 's/nifi.cluster.protocol.heartbeat.interval=5 sec/nifi.cluster.protocol.heartbeat.interval=10 sec/g' $NIFI_HOME/conf/nifi.properties
+    sed -i 's/nifi.provenance.repository.directory.default=.\/provenance_repository/nifi.provenance.repository.directory.default=\/opt\/nifi\/provenance_repository/g' $NIFI_HOME/conf/nifi.properties
+    sed -i 's/nifi.flowfile.repository.directory=.\/flowfile_repository/nifi.flowfile.repository.directory=\/opt\/nifi\/flowfile_repository/g' $NIFI_HOME/conf/nifi.properties
+    sed -i 's/nifi.database.directory=.\/database_repository/nifi.database.directory=\/opt\/nifi\/database_repository/g' $NIFI_HOME/conf/nifi.properties
+    sed -i 's/nifi.content.repository.directory.default=.\/content_repository/nifi.content.repository.directory.default=\/opt\/nifi\/content_repository/g' $NIFI_HOME/conf/nifi.properties
+    sed -i 's/java.arg.13=-XX:+UseG1GC/#java.arg.13=-XX:+UseG1GC/g' $NIFI_HOME/conf/bootstrap.conf
+    sed -i "s/java.arg.2=-Xms512m/java.arg.2=-Xms${init_heap}/g" $NIFI_HOME/conf/bootstrap.conf
+    sed -i "s/java.arg.3=-Xmx512m/java.arg.2=-Xmx${max_heap}/g" $NIFI_HOME/conf/bootstrap.conf
+    sed -i '61d' $NIFI_HOME/conf/state-management.xml
+    newline="       <property name=\"Connect String\">${ZK_SVC}:2181</property>"
+    sed -i "61 i ${newline}" $NIFI_HOME/conf/state-management.xml
+    cd $NIFI_HOME/bin
+    ./nifi.sh start
+    tail -f /dev/null
