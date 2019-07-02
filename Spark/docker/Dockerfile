@@ -1,0 +1,50 @@
+FROM ubuntu:16.04
+
+#ARG USR=spark
+# Install necessary tools & setup jdk  -- Make a diff image containing only ubuntu & jdk
+ENV DEBIAN_FRONTEND=noninteractive 
+
+# Set Env variables
+ENV JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64 \
+    HADOOP_HOME=/etc/hadoop  \
+    HADOOP_CONF_DIR=/etc/hadoop/etc/hadoop \
+    HADOOP_MAPRED_HOME=/etc/hadoop \
+    HADOOP_COMMON_HOME=/etc/hadoop \
+    YARN_CONF_DIR=/etc/hadoop/etc/hadoop \
+    SPARK_HOME=/etc/spark \
+    SPARK_CONF_DIR=/etc/spark/conf 
+
+RUN set -x && \
+    apt-get update -y && \
+    apt-get install -y  software-properties-common openjdk-8-jre-headless && \
+#    add-apt-repository ppa:webupd8team/java -y && \
+    apt-get update && \
+    echo oracle-java7-installer shared/accepted-oracle-license-v1-1 select true | /usr/bin/debconf-set-selections && \
+#    apt-get install -y oracle-java8-installer && \
+    apt-get install -y sudo curl wget && \
+    apt-get clean && \
+# setup apache hadoop base, set variables
+    wget --no-check-certificate --no-cookies https://archive.apache.org/dist/hadoop/core/hadoop-2.7.7/hadoop-2.7.7.tar.gz && \
+    tar -xzvf hadoop-2.7.7.tar.gz -C /etc && \
+    ln -s /etc/hadoop-2.7.7 /etc/hadoop && \
+# spark 2.1.3 download
+    wget --no-check-certificate --no-cookies https://archive.apache.org/dist/spark/spark-2.1.3/spark-2.1.3-bin-hadoop2.7.tgz && \
+    tar -xzvf spark-2.1.3-bin-hadoop2.7.tgz -C /etc && \
+    ln -s /etc/spark-2.1.3-bin-hadoop2.7 /etc/spark 
+
+# create non-root user to run the container & all other process
+RUN set -x && \
+#    groupadd spark && \
+    useradd spark && \
+    [ `id -u spark` -eq 1000 ] && \
+    [ `id -g spark` -eq 1000 ] && \
+    mkdir -p /home/spark && \
+#    adduser spark sudo && \
+    chown -R spark:spark  /home/spark ${JAVA_HOME} ${HADOOP_HOME} ${SPARK_HOME} /etc/spark-2.1.3-bin-hadoop2.7
+
+EXPOSE 8080 7077 6066 8081 4040 18080
+
+ENV PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/lib/jvm/java-1.8-openjdk/jre/bin:/usr/lib/jvm/java-1.8-openjdk/bin:${HADOOP_HOME}/bin:${HADOOP_CONF_DIR}/bin:${HADOOP_MAPRED_DIR}/bin:${YARN_CONF_DIR}/bin:${SPARK_HOME}/bin:${SPARK_CONF_DIR}/bin:${SPARK_HOME}/sbin"
+
+#USER spark
+WORKDIR $SPARK_HOME
