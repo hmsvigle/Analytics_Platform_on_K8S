@@ -5,8 +5,8 @@ JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64 \
 KAFKA_HOME=/opt/kafka \
 PATH=$PATH:/opt/kafka/bin
 
-ARG KAFKA_VERSION=2.1.0
-ARG KAFKA_DIST=kafka_2.11-2.1.0
+ARG KAFKA_VERSION=2.1.1
+ARG KAFKA_DIST=kafka_2.11-2.1.1
 RUN set -x \
     && apt-get update \
     && apt-get install -y openjdk-8-jre-headless wget netcat \
