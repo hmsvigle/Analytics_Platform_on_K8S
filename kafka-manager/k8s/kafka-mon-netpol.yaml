@@ -1,0 +1,20 @@
+apiVersion: extensions/v1beta1
+kind: NetworkPolicy
+metadata:
+  labels:
+    app: kafka-mon
+  name: kafka-mon-nw
+spec:
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: analytics
+  - ports:
+    - port: 8080
+      protocol: TCP
+  podSelector:
+    matchLabels:
+      app: kafka-mon
+  policyTypes:
+  - Ingress
